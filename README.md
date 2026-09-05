@@ -1,21 +1,58 @@
 # Agent Plugins
 
-[atototo/agent-plugins](https://github.com/atototo/agent-plugins)
+[![CI](https://github.com/atototo/agent-plugins/actions/workflows/check.yml/badge.svg?branch=main)](https://github.com/atototo/agent-plugins/actions/workflows/check.yml)
 
-하나의 저장소에서 여러 **플러그인**을 관리하고, 한 번의 설치 명령으로
-Codex · Claude Code · OpenCode 중 원하는 하네스에 연결하는 로컬 우선 프로젝트다.
+**내 플러그인은 한곳에서 관리하고, 설치는 원하는 하네스에 한 번에.**
 
-첫 플러그인은 **ELI5 Visual**이다. 사용자가 작성한 설명·편집 원칙을 중심으로
-`visual-explainer@0.11.0` MCP를 번들링한다. Playwright MCP는 설치하지 않는다.
-실행 환경의 브라우저를 우선 사용하고, 실제 HTML을 렌더링한 화면으로 검증한다.
+스킬·MCP·설정을 **플러그인 단위**로 묶는 개인 저장소다.
+공통 원본을 Codex · Claude Code · OpenCode 패키지로 만들고, 하나의 CLI로 설치한다.
 
-현재 상태: 초기 개발용 v0.1.0. npm에는 아직 게시하지 않았으며, npm 이름은
-작업용이다. Codex 형식 검사, 설치 어댑터 자동 테스트, 실제 MCP 실행 테스트를
-구분해서 제공한다. **어댑터 모형 테스트는 세 하네스의 실제 설치 검증이 아니다.**
+[전체 구조](#overview) · [설치하기](#install) · [ELI5 Visual](#eli5-visual) · [검증 상태](#verification) · [개발하기](#development)
 
-## 개발 시작
+> **v0.1 개발판** — 소스와 CI는 공개됐지만 npm에는 아직 게시하지 않았다.
+> 자동 테스트·실제 MCP·HTML 렌더링은 검증했고, **세 하네스의 실제 설치부터 사용까지 이어지는 검증은 남아 있다.**
 
-Node.js 22 이상이 필요하다. 처음 시작한다면:
+<a id="overview"></a>
+
+## 공통 원본에서 세 하네스로
+
+플러그인 내용은 `plugins/`에 작성한다. 하네스별 파일 형식은 빌드가 만들고,
+설치기는 준비된 패키지를 선택한 하네스에 등록한다.
+
+```mermaid
+flowchart TB
+    accTitle: 공통 플러그인을 세 하네스에 설치하는 구조
+    accDescr: 개발자가 플러그인 원본을 로컬 또는 CI에서 빌드하면 하네스별 패키지가 생성된다. 설치 CLI는 준비된 패키지를 Codex, Claude Code, OpenCode 중 선택한 대상에 등록한다.
+    subgraph build["개발할 때 · 로컬 / CI"]
+        source["플러그인 원본<br/>스킬 · MCP · 메타데이터"]
+        render["하네스별 패키지 생성"]
+        bundle["빌드된 패키지 · dist"]
+        source --> render --> bundle
+    end
+    bundle --> installer["설치 CLI<br/>전체 또는 원하는 하네스 선택"]
+    installer --> codex["Codex"]
+    installer --> claude["Claude Code"]
+    installer --> opencode["OpenCode"]
+```
+
+설치 명령은 하나지만, 내부에서는 **각 하네스의 서로 다른 등록 방식**을 사용한다.
+
+| 대상 | 설치기가 연결하는 방식 | 사전 조건 |
+| --- | --- | --- |
+| Codex | 네이티브 마켓플레이스 + `.codex-plugin` 패키지 | CLI **0.153.4 이상** |
+| Claude Code | 네이티브 마켓플레이스 + `.claude-plugin` 패키지 | **2.1.212 이상**, `uninstall --keep-data` 지원 |
+| OpenCode | `plugin` 배열에 JS 모듈 등록 → 스킬 경로·MCP 설정 추가 | 유효한 global JSON/JSONC 경로 |
+
+설치 범위는 **user/global**이며 프로젝트 설정은 수정하지 않는다.
+OpenCode 실행 파일은 등록 단계의 선행조건이 아니므로, 등록 후 실제 로딩은 별도 확인이 필요하다.
+
+<a id="install"></a>
+
+## 설치하기
+
+### 1. 소스로 준비하기
+
+현재 npm 미게시 상태이므로, 처음에는 저장소에서 설치기를 준비한다. **Node.js 22 이상**이 필요하다.
 
 ```bash
 git clone https://github.com/atototo/agent-plugins.git
@@ -24,131 +61,138 @@ npm ci
 npm run check
 ```
 
-`check`는 로컬 빌드 → 패키지 무결성 검사 → 설치/설정 테스트 → 실제 MCP
-프로토콜 테스트를 실행한다. 사용자 하네스 설정을 수정하지 않는다.
+여기까지는 빌드와 검사만 수행한다. **사용자 하네스에는 아직 설치하지 않는다.**
+이미 빌드된 tarball이 있다면 이 과정 없이 [패키지로 설치하기](docs/USAGE.md#package-install)를 이용할 수 있다.
 
-브라우저 검증은 **개발자용** 선택 테스트다. 새 환경에서는 브라우저 바이너리를
-한 번 준비해야 한다. 이는 플러그인 설치자의 필수 의존성이 아니다.
-
-```bash
-npx playwright install chromium
-npm run test:browser
-```
-
-Linux에서는 Chromium용 시스템 라이브러리와 한글 폰트도 필요하다. CI는 일회용
-runner에서 브라우저 의존성을 준비한다. 로컬 시스템 패키지는 이 프로젝트가 자동으로
-설치하지 않는다. 실행 환경에서 라이브러리가 누락되면 화면 검증 미완료로 구분한다.
-
-## 설치: 명령은 한 번
-
-먼저 변경 계획만 확인한다:
+### 2. 변경 계획 확인하기
 
 ```bash
 node bin/agent-plugins.mjs install eli5-visual --harness all --dry-run
 ```
 
-사용할 하네스를 모두 설치해 두고 실제 설정을 적용한다:
+`--dry-run`은 계획만 출력하고 설정·설치 기록을 만들지 않는다.
+하네스 CLI의 실행 가능 여부는 실제 적용 전 사전 검사에서 확인한다.
+
+### 3. 원하는 하네스에 한 번에 설치하기
 
 ```bash
+# 세 하네스 모두
 node bin/agent-plugins.mjs install eli5-visual --harness all --yes
-```
 
-원하는 하네스만 선택할 수도 있다:
-
-```bash
+# 또는 Codex와 OpenCode만
 node bin/agent-plugins.mjs install eli5-visual --harness codex,opencode --yes
 ```
 
-대화형 터미널에서 `--harness`를 생략하면 하네스 선택을 묻는다. `all`은 세 하네스를
-명시적으로 선택한다는 뜻이며, 설치되지 않은 하네스를 조용히 건너뛰지 않는다.
-Codex/Claude CLI가 없으면 설정 변경 전에 실패한다. 하네스 자체는 설치하지 않는다.
-현재 설치기는 Codex CLI **0.153.4 이상**, Claude Code **2.1.212 이상**을 요구한다.
-Claude는 데이터 보존을 위해 `plugin uninstall --keep-data` 지원도 확인한다.
+대화형 터미널에서는 `--harness`를 생략하고 대상을 선택할 수도 있다.
+`--yes`는 변경 적용을 확인하는 옵션이다. 설치 뒤에는 **새 하네스 세션을 시작한다.**
 
-설치 범위는 **user/global**이다. 프로젝트 설정은 수정하지 않는다. Codex/Claude는
-공식 마켓플레이스·플러그인 명령을 사용한다. OpenCode는 global JSON/JSONC의
-`plugin` 배열에 실제 플러그인 모듈을 등록한다. 그 모듈이 스킬 경로와 MCP 설정을
-추가한다. OpenCode 실행 파일은 설치 등록의 선행조건이 아니지만, 실제 로딩은
-OpenCode에서 별도로 확인해야 한다.
+> `all`은 세 하네스를 명시적으로 선택한다는 뜻이다. Codex/Claude CLI가 없으면
+> 하네스 설정 변경 전에 중단하며, 누락된 하네스를 조용히 건너뛰거나 대신 설치하지 않는다.
+> 중간 실행 실패는 하네스별로 기록한다. 전체 자동 롤백은 보장하지 않는다.
 
-설치 뒤 새 세션을 시작한다. Claude Code에서는 지원되는 경우 `/reload-plugins`를
-사용할 수 있다. 스킬은 보통 Codex의 `$eli5-visual`, Claude Code의
-`/eli5-visual:eli5-visual`, OpenCode의 스킬 탐색 또는 자연어 요청으로 사용한다.
+설치 후 [사용·업데이트·제거 가이드](docs/USAGE.md)를 참고한다.
 
-요청 예: “이 설계 문서를 처음 보는 사람에게 중요한 제약과 다음 할 일까지
-빠뜨리지 않는 스크롤형 시각 설명으로 만들어줘.”
+<a id="eli5-visual"></a>
 
-## 상태·업데이트·제거
+## 첫 플러그인: ELI5 Visual
 
-```bash
-node bin/agent-plugins.mjs list
-node bin/agent-plugins.mjs status
-node bin/agent-plugins.mjs doctor
-node bin/agent-plugins.mjs update eli5-visual --harness all --yes
-node bin/agent-plugins.mjs remove eli5-visual --harness all --yes
+**어려운 개념이나 긴 문서를, 중요한 사실을 빠뜨리지 않는 시각 설명으로.**
+
+짧은 질문에는 설명과 다이어그램을, 긴 원문에는 한 장으로 이어지는 스크롤형 HTML 브리프를 만든다.
+쉬운 말로 바꾸되 현재 상태·제약·숫자·조건·다음 결정을 지우지 않는 것이 핵심이다.
+
+> “이 설계 문서를 처음 보는 사람에게 중요한 제약과 다음 할 일까지
+> 빠뜨리지 않는 스크롤형 시각 설명으로 만들어줘.”
+
+![ELI5 Visual 검증용 HTML의 상단 화면. 큐의 뜻을 설명하고 요청 접수, 대기열 저장, 작업 처리의 연결을 보여 준다.](docs/assets/eli5-visual-preview.png)
+
+*실제 Chromium으로 렌더링한 [고정 테스트용 HTML](test/fixtures/visual-brief.html)의 상단이다.
+전체 예시에는 작업 레코드와 재시도 조건도 이어진다. 에이전트가 자동 생성한 결과나 품질 보장 사례로 제시하는 이미지는 아니다.*
+
+| 구성 요소 | 맡는 일 |
+| --- | --- |
+| `eli5-visual` 스킬 | 보존할 사실 선정, 초보자용 설명 구성, 시각적 이야기 순서 결정 |
+| 외부 `visual-explainer@0.11.0` MCP | 에이전트가 작성한 HTML을 로컬 파일로 저장 |
+| 사용 가능한 브라우저 | **저장한 HTML 자체**를 열어 글자 잘림·배치·가독성 확인 |
+
+자체 시각화 MCP를 새로 만들지 않으며 **Playwright MCP도 필수 의존성이 아니다.**
+하네스에 사용 가능한 브라우저 수단을 우선 이용한다. 브라우저가 없으면 HTML은 전달하되,
+화면 검증을 하지 못했다고 명시한다. 이 저장소의 Playwright 라이브러리는 개발·CI 검사용이다.
+
+기본 결과물은 **편집 가능한 독립 HTML + 파일 참조**다. 실제 live Visualize 기능이 있는 환경에서만
+그 환경의 계약에 따라 인라인 출력을 사용한다. 일반 MCP 연결만으로 채팅 안에 HTML이 표시된다고 가정하지 않는다.
+
+<a id="verification"></a>
+
+## 어디까지 검증했나
+
+CI 초록 배지는 빌드·테스트 결과를 나타낸다. 실제 하네스에서 스킬을 찾고 사용하는 전체 경험과는 구분한다.
+
+| 검사 | 현재 확인한 범위 |
+| --- | --- |
+| 설치기 자동 테스트 **19개** | 중복 설치, 설정 보존, 부분 실패·재시도, 업데이트·제거, 경로 보호 |
+| 실제 외부 MCP 실행 | 연결, 도구·리소스 조회, full/quick HTML 저장, 경로 이탈 차단 |
+| 실제 Chromium 렌더링 | 고정 예시의 **1200px / 390px** 레이아웃·넘침·페이지 오류 검사, 로컬 캡처 시각 검수 |
+| GitHub Actions | **Node 22·24**에서 자동 검사와 tarball 생성. [실행 결과](https://github.com/atototo/agent-plugins/actions/workflows/check.yml) |
+| **남은 검증** | 실제 세 하네스에서 설치 → 새 세션 → 스킬/MCP 사용 → 업데이트 → 제거 |
+
+`doctor`는 파일 해시와 등록 상태를 확인한다. MCP 연결 성공, 브라우저 가용성,
+원문 내용 보존이나 설명 품질까지 보증하지 않는다. [검증 방법과 한계](docs/VALIDATION.md)
+
+### 설치기가 보존하는 것
+
+- 기존 설정·주석과 관리하지 않는 플러그인을 덮어쓰지 않는다.
+- 제거해도 **HTML 결과물·패키지 스냅샷·네이티브 마켓플레이스 등록**은 남긴다.
+- 브라우저 설치, 계정 로그인, 권한 변경, 결과 공개를 자동 수행하지 않는다.
+
+MCP는 로컬 프로세스지만, 에이전트가 읽는 자료는 선택한 모델 제공자에게 전달될 수 있다.
+“로컬 MCP”가 전체 작업의 오프라인 실행을 뜻하지는 않는다.
+
+<a id="development"></a>
+
+## 플러그인 개발하기
+
+```text
+agent-plugins/
+├── catalog.json             플러그인 목록
+├── plugins/                 직접 작성하는 공통 원본
+│   └── eli5-visual/
+│       ├── plugin.json      패키지 정의
+│       └── skills/          편집·렌더링·검증 지침
+├── renderers/               Codex / Claude / OpenCode 형식 생성
+├── runtime/                 번들된 외부 MCP 실행 래퍼
+├── bin/ + src/              단일 설치 CLI와 설정·상태 관리
+├── scripts/ + test/         빌드 및 격리된 검증
+└── dist/                    생성된 패키지 — Git에서 제외
 ```
 
-업데이트는 새 `dist/`를 만들거나 새 CLI 패키지를 받은 뒤 실행한다. 같은 빌드의
-설치는 재실행해도 중복되지 않는다. 다른 빌드로 바꾸는 것은 `update`로 명시한다.
-새 버전의 등록을 확인한 뒤 이 설치기가 관리하던 이전 버전만 제거한다.
+| 하고 싶은 일 | 실행할 명령 |
+| --- | --- |
+| 빌드 + 무결성·설치기·MCP 검사 | `npm run check` |
+| 최종 HTML의 브라우저 검사 | `npm run test:browser` |
+| 검증 후 배포용 `.tgz` 만들기 | `npm run pack:local` |
 
-`doctor`는 파일 해시와 등록 상태를 확인한다. **MCP 연결 성공이나 브라우저 도구
-가용성을 보증하지 않는다.** 사용 중인 세션에서 확인해야 하는 사항을 명시한다.
+브라우저 검사는 Chromium·시스템 라이브러리·한글 폰트 준비가 필요하다.
+새 환경에서는 [브라우저 검증 준비](docs/USAGE.md#browser-check)를 먼저 확인한다.
 
-중간 실패 시 하네스별 진행 상태가 기록된다. 같은 명령을 다시 실행해 이어가거나
-`remove`로 관리 중인 등록을 제거할 수 있다. 세 외부 CLI에 걸친 완전한 원자적
-설치/롤백을 보장하지 않는다. 성공한 하네스가 자동으로 되돌아가지는 않는다.
-프로세스가 강제 종료되어 잠금이 남으면 `status`를 확인한 뒤 `unlock --yes`를
-사용한다. 살아 있는 프로세스의 잠금은 해제하지 않는다.
+**패키지 렌더러는 개발자의 로컬 빌드와 CI에서 실행한다.**
+플러그인을 사용할 때마다 패키지를 다시 만들지 않는다. 설명용 HTML을 만들고 렌더링하는 작업은 별개다.
 
-제거는 HTML 결과물, 버전별 패키지 스냅샷, 네이티브 마켓플레이스 등록을 보존한다.
-마켓플레이스 전체를 제거하면 다른 플러그인까지 지워질 수 있기 때문이다.
-디스크 정리/자동 GC는 v0.1.0 범위에 포함하지 않는다.
+새 플러그인은 `plugins/<name>`에 원본을 만들고 `catalog.json`에 추가한다.
+v0.1 범위는 **스킬 + 지원되는 로컬 MCP**다. 새 MCP 제공자는 별도 어댑터와 검증이 필요하다.
+훅·에이전트·LSP의 범용 변환, 프로젝트 범위 설치, Windows 네이티브 명령 실행은 아직 지원 범위가 아니다.
 
-## 저장 위치와 안전 장치
+## 배포 상태와 더 읽을 문서
 
-- 설치 기록·스냅샷: `~/.local/share/agent-plugins/` (`--state-dir`로 변경 가능).
-- HTML: `~/.agent/diagrams/eli5-visual/`. 하네스 시작 전
-  `AGENT_PLUGINS_OUTPUT_DIR`로 별도 전용 경로를 지정할 수 있다.
-- OpenCode: 기존 `opencode.jsonc`/`opencode.json`을 사용한다. 둘 다 있거나 사용자
-  지정 `OPENCODE_CONFIG`가 있으면 `--opencode-config`로 대상을 명확히 지정한다.
-- 기존 설정·주석과 나중에 사용자가 추가한 항목은 보존한다. 관리하지 않는 플러그인,
-  충돌하는 MCP 키, 심볼릭 링크, 손상된 JSONC는 덮어쓰지 않는다.
-- npm lifecycle 스크립트에서 하네스를 설치하지 않는다. 브라우저 도구 설치·권한 변경,
-  계정 로그인, 결과 공개도 자동으로 수행하지 않는다.
-- MCP는 로컬 stdio 프로세스다. 단, 에이전트가 읽는 자료와 MCP 결과는 선택한 모델의
-  제공자에게 전달될 수 있다. “로컬 MCP”가 “전체 작업이 오프라인”이라는 뜻은 아니다.
+- GitHub 소스와 CI 산출물은 제공하지만, **npm 게시와 자동 릴리스는 아직 하지 않는다.**
+- 소스 저장소 루트는 네이티브 마켓플레이스가 아니다. 생성된 `dist/codex`, `dist/claude`가 각각의 루트다.
+- npm 이름은 아직 작업용 `personal-agent-plugins`이고 `private: true`를 유지한다.
+- 공개 라이선스는 미정이다. 자체 코드는 현재 `UNLICENSED`이며, 외부 코드의 라이선스는 별도로 유지한다.
 
-## 배포 준비
-
-```bash
-npm run pack:local
-```
-
-생성된 `.tgz`에는 빌드 완료된 세 하네스용 패키지가 포함된다. 사용자는 렌더러를
-직접 빌드할 필요가 없다. 예를 들어 로컬 tarball은 다음 한 명령으로 사용할 수 있다:
-
-```bash
-npx --yes --package ./personal-agent-plugins-0.1.0.tgz agent-plugins install eli5-visual --harness all --yes
-```
-
-GitHub Actions는 같은 검증을 수행하고 수동 실행 시 배포용 tarball을 artifact로
-제공한다. 이 workflow는 npm에 자동 게시하지 않는다. npm에 게시하기 전
-패키지 이름·라이선스를 결정하고 `private: true`를 해제해야 한다.
-공개 저장소와 오픈소스 라이선스 부여는 별개이므로 현재 자체 코드는 `UNLICENSED`다.
-외부 코드의 라이선스는 별도로 유지한다.
-
-직접 네이티브 마켓플레이스를 쓰려면 `dist/codex`, `dist/claude`가 각각 마켓플레이스
-루트다. 개발자 전용 수동 경로이며, 평소에는 소유권·업데이트 추적이 있는 단일 CLI를
-권장한다. 소스 GitHub 저장소의 루트는 마켓플레이스가 아니다. 네이티브 GitHub 등록을
-제공하려면 생성된 해당 루트를 별도 배포 브랜치/레포에 게시해야 한다.
-
-## 확장과 범위
-
-[전체 설계](docs/DESIGN.md), [조사 근거](docs/RESEARCH.md),
-[검증 범위](docs/VALIDATION.md)를 참고한다.
-
-v0.1.0은 **skills + 로컬 MCP**를 담는 플러그인을 지원한다. 훅·에이전트·LSP의
-범용 변환, 프로젝트 범위 설치, 자동 브라우저 설치, 공개 registry, 자동 게시,
-Windows 네이티브 명령 실행은 아직 보장하지 않는다. 지원하지 않는 필드는 빌드에서
-오류로 처리하며 기능을 조용히 버리지 않는다.
+| 문서 | 궁금한 내용 |
+| --- | --- |
+| [사용 가이드](docs/USAGE.md) | tarball 설치, 사용 명령, 설정 경로, 업데이트·제거, 실패 복구 |
+| [전체 설계](docs/DESIGN.md) | 하네스별 책임, 두 종류의 렌더링, 설치 상태·소유권, 확장 경계 |
+| [조사 근거](docs/RESEARCH.md) | 구현에 참고한 공식 문서와 upstream 소스 |
+| [검증 범위](docs/VALIDATION.md) | 테스트가 증명하는 것과 남은 실제 사용 검증 |
+| [외부 코드 고지](THIRD_PARTY_NOTICES.md) | 번들된 MCP와 의존성의 라이선스 안내 |
