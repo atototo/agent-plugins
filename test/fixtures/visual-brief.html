@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>작업을 순서대로 처리하는 큐</title>
+  <style>
+    :root { color-scheme: light dark; --paper: #f5f3ec; --ink: #24362e; --muted: #56645d; --line: #bac5bb; --accent: #15664f; --panel: #ffffff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.75 system-ui, sans-serif; }
+    main { max-width: 960px; margin: auto; padding: 56px 28px 72px; }
+    header { border-top: 5px solid var(--accent); padding-top: 26px; }
+    .eyebrow { color: var(--accent); letter-spacing: .08em; font-size: 13px; font-weight: 700; }
+    h1 { font-size: clamp(30px, 4vw, 46px); line-height: 1.3; margin: 14px 0; overflow-wrap: anywhere; }
+    h2 { font-size: 25px; line-height: 1.4; margin: 0 0 12px; }
+    p { max-width: 70ch; margin: 12px 0; }
+    section { padding-top: 36px; margin-top: 38px; border-top: 1px solid var(--line); }
+    .caption { color: var(--muted); font-size: 15px; }
+    .flow { display: flex; gap: 14px; align-items: center; margin: 24px 0; }
+    .node { flex: 1; min-width: 0; padding: 20px; border: 1px solid var(--line); background: var(--panel); }
+    .node strong, .node span { display: block; }
+    .node span { font-size: 14px; color: var(--muted); }
+    .arrow { color: var(--accent); font-size: 24px; }
+    dl { display: grid; grid-template-columns: 145px 1fr; margin: 24px 0 0; }
+    dt, dd { margin: 0; padding: 12px 0; border-bottom: 1px solid var(--line); min-width: 0; overflow-wrap: anywhere; }
+    dt { font-weight: 700; }
+    code { font-size: .9em; }
+    ul { padding-left: 1.4em; }
+    li { padding: 6px 0; }
+    .gate { border-left: 4px solid var(--accent); padding: 10px 22px; margin-top: 24px; }
+    @media (max-width: 600px) {
+      main { padding: 32px 20px 48px; }
+      .flow { flex-direction: column; align-items: stretch; }
+      .arrow { align-self: center; transform: rotate(90deg); }
+      dl { grid-template-columns: 110px 1fr; gap: 0 10px; }
+    }
+    @media (prefers-color-scheme: dark) { :root { --paper: #15241e; --ink: #e1ebe3; --muted: #afc3b5; --line: #476053; --accent: #8dd4b6; --panel: #1c3027; } }
+  </style>
+</head>
+<body><main>
+  <header><div class="eyebrow">ELI5 VISUAL · 렌더링 테스트 예시</div><h1>작업을 순서대로 처리하는 큐</h1><p>한꺼번에 들어온 요청을 당장 모두 처리할 수 없다면, 작업을 먼저 줄에 세워 두고 차례로 꺼낼 수 있어요. 이 대기열을 <strong>큐</strong>라고 불러요.</p><p class="caption">아래 규칙과 숫자는 검증용 예시의 조건이며 실제 서비스의 운영 사실이 아닙니다.</p></header>
+  <section><h2>요청이 대기열을 거쳐 처리되는 흐름</h2><p>요청을 받는 부분과 일을 처리하는 부분을 나누면, 처리할 차례가 될 때까지 작업을 보관할 수 있어요.</p><div class="flow" aria-label="사용자 요청, 대기열 저장, 작업 처리 순서"><div class="node"><strong>요청 접수</strong><span>작업 번호 생성</span></div><span class="arrow" aria-hidden="true">→</span><div class="node"><strong>대기열 저장</strong><span>먼저 온 요청부터 대기</span></div><span class="arrow" aria-hidden="true">→</span><div class="node"><strong>작업 처리</strong><span>완료 결과 기록</span></div></div><p class="caption">현실의 큐는 우선순위나 동시 처리 규칙에 따라 완료 순서가 달라질 수 있어요. 이 예시는 한 번에 하나씩 처리합니다.</p></section>
+  <section><h2>예시 작업 레코드에 저장하는 세 가지 값</h2><p>작업마다 작은 기록표를 붙여 두면 무엇을 처리하고 있는지와 현재 진행 상태를 알 수 있어요.</p><dl><dt><code>job_id</code></dt><dd><code>example-001</code> — 작업을 구분하는 번호</dd><dt><code>status</code></dt><dd><code>waiting</code> → <code>running</code> → <code>done</code></dd><dt><code>attempts</code></dt><dd>실행을 시도한 횟수. 첫 시도는 <strong>1회</strong>입니다.</dd></dl></section>
+  <section><h2>실패한 작업을 다시 시도하는 조건</h2><p>실패했다고 바로 버리지는 않지만, 같은 일을 무한히 반복하지도 않도록 예시의 제한을 정했어요.</p><div class="gate"><ul><li>최대 <strong>3회</strong>까지 실행을 시도합니다.</li><li>다시 실행해도 중복 결제 같은 부작용이 없어야 합니다.</li><li>3회 모두 실패하면 담당자 확인 대상으로 남깁니다.</li></ul></div><p class="caption">다음 결정: 어떤 실패는 다시 시도할 수 있고, 어떤 실패는 즉시 확인해야 할까요?</p></section>
+</main></body></html>

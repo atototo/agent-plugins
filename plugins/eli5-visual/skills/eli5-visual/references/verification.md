@@ -1,0 +1,34 @@
+# Verify the delivered artifact
+
+Keep three checks separate:
+
+1. **Source fidelity:** compare the output against the internal must-preserve fact
+   inventory. No browser can establish that a decision, condition, or number from
+   the source survived.
+2. **Structure:** read the final saved HTML, verify the required document/fragment
+   shape, references, headings, and responsive rules. Native inline output must
+   satisfy its live root-ID and delivery-reference requirements.
+3. **Rendered inspection:** open that same artifact in an available browser and
+   actually inspect its rendered appearance. For a tall brief, inspect across the
+   document by scrolling or using readable captures, not a tiny full-page thumbnail.
+   Check hierarchy, labels/connectors, readable text, clipping, contrast and scroll
+   rhythm. Check narrow layout where responsive behavior matters. DOM measurements
+   and console checks supplement visual inspection; neither replaces it.
+
+Use the current host's browser tools and their live instructions first. Otherwise
+use a suitable already-connected browser MCP, installed CLI, or existing local
+test runner. Choose one working route; do not duplicate the test across tools.
+No specific browser vendor or MCP is required. A CLI screenshot is useful only
+when the current model can actually inspect it; an accessibility snapshot alone
+is not a visual layout review.
+
+Inspect the finished candidate once, then iterate only for material findings.
+If the artifact changes, recheck the affected parts. Do not keep taking near-
+identical intermediate screenshots. A native fragment should be tested in its
+actual host or a genuinely equivalent preview, not an unrelated standalone theme.
+
+If no authorized browser route is available, deliver the HTML with an explicit
+"source checks completed; rendered/visual inspection not performed" limitation.
+Do not silently install tools or weaken security. A browser failure is not a
+passing test. A failed display reference is not delivery. Do not claim screenshots
+were reviewed unless they were actually available to and inspected by the agent.

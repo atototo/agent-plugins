@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "agent-plugins",
+  "displayName": "Personal Agent Plugins",
+  "author": { "name": "Personal Agent Plugins contributors" },
+  "plugins": ["eli5-visual"]
+}
