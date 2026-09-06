@@ -10,12 +10,13 @@ const usage = `agent-plugins <command> [plugin ...] [options]
 
   list                 List plugins in the prebuilt bundle
   validate             Verify prebuilt files and checksums (no writes)
-  install / update     Configure selected plugins in selected harnesses
+  install              Configure named plugins in selected harnesses
+  update               Update recorded plugin/harness pairs (optional filters)
   status / doctor      Show receipts / check configured state
   remove               Remove owned registrations; preserve HTML and snapshots
   unlock               Remove an interrupted operation lock only if its owner exited
 
-  --harness all|codex,claude,opencode  Target harnesses (repeatable)
+  --harness all|codex,claude,opencode  Targets; update only filters existing pairs
   --source DIR         Prebuilt bundle directory (default: packaged dist/)
   --state-dir DIR      Installer-owned storage directory
   --opencode-config FILE  Explicit global OpenCode JSON/JSONC config
@@ -23,6 +24,8 @@ const usage = `agent-plugins <command> [plugin ...] [options]
   --yes                Confirm mutations non-interactively
 
 Node 22+ required. Nothing is installed through npm lifecycle scripts.
+Update uses this bundle; it does not fetch GitHub or npm releases.
+Run update --dry-run, then update --yes to update all recorded pairs in this catalog.
 `;
 
 async function main() {
@@ -51,16 +54,19 @@ async function main() {
   if (targets.includes('all')) {
     if (targets.length !== 1) throw new Error('Use all alone'); targets = HARNESSES;
   }
-  if (command !== 'unlock' && !targets.length) {
+  if (['install', 'remove'].includes(command) && !targets.length) {
     if (!process.stdin.isTTY) throw new Error('Specify --harness all or a comma-separated selection');
     const input = createInterface({ input: process.stdin, output: process.stdout });
     try { const answer = (await input.question('Target harnesses [all/codex/claude/opencode, comma-separated]: ')).trim(); targets = answer === 'all' ? HARNESSES : answer.split(','); }
     finally { input.close(); }
   }
-  if (command !== 'unlock' && !names.length) throw new Error('Specify a plugin name; use list to see available plugins');
+  if (['install', 'remove'].includes(command) && !names.length) throw new Error('Specify a plugin name; use list to see available plugins');
   if (command === 'install' || command === 'update') {
     const { manifest, records } = await installer.plan(names, targets, { update: command === 'update' });
-    print({ action: command, digest: manifest.digest, targets: records.map(r => ({ plugin: r.plugin, harness: r.harness, version: r.version, config: r.configFile, selector: r.selector })) });
+    print({ action: command, digest: manifest.digest, targets: records.map(r => ({ plugin: r.plugin, harness: r.harness,
+      fromVersions: command === 'update' ? r.fromVersions : undefined, version: r.version, config: r.configFile, selector: r.selector })),
+      message: !records.length ? 'No managed installations in this catalog. Nothing changed; check --state-dir if installations were expected.' : undefined });
+    if (!records.length) return;
   } else if (command === 'remove') {
     installer.targets(targets);
     print({ action: command, records: (await installer.state()).records.filter(r => names.includes(r.plugin) && targets.includes(r.harness)).map(r => ({ plugin: r.plugin, harness: r.harness, version: r.version })) });

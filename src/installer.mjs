@@ -59,30 +59,44 @@ export class Installer {
     if (!Array.isArray(targets) || !targets.length || targets.some(x => !HARNESSES.includes(x))) throw new Error('Choose codex, claude, opencode, or all');
     return [...new Set(targets)];
   }
-  async plan(names, targets, { update = false } = {}) {
-    targets = this.targets(targets);
+  async plan(names = [], targets = [], { update = false } = {}) {
+    if (!Array.isArray(names) || (!update && !names.length) || new Set(names).size !== names.length) throw new Error('Select distinct plugin names; install requires at least one');
+    for (const name of names) checkName(name);
+    targets = update && Array.isArray(targets) && !targets.length ? [] : this.targets(targets);
     const manifest = await verifyBundle(this.source);
     const state = await this.state();
-    if (!names.length || new Set(names).size !== names.length) throw new Error('Select one or more distinct plugin names');
+    for (const name of names) if (!manifest.plugins.some(p => p.name === name)) throw new Error(`Unknown plugin: ${name}`);
+    const managed = state.records.filter(r => r.catalog === manifest.name);
+    // Updates select exact receipt pairs, never plugin names × harness names.
+    const pairs = update
+      ? [...new Map(managed.filter(r => (!names.length || names.includes(r.plugin)) && (!targets.length || targets.includes(r.harness)))
+        .map(r => [`${r.plugin}@${r.harness}`, { name: r.plugin, harness: r.harness }])).values()]
+      : names.flatMap(name => targets.map(harness => ({ name, harness })));
+    if (update && !pairs.length && (names.length || targets.length)) throw new Error('No managed plugin/harness pairs match this update. Use install to add a new target, or check --state-dir.');
     const snapshot = path.join(this.stateDir, 'releases', manifest.digest);
     const marketplace = `${manifest.name.slice(0, 40)}-${manifest.digest.slice(0, 12)}`;
     const records = [];
-    for (const name of names) {
-      checkName(name);
+    for (const { name, harness } of pairs) {
       const plugin = manifest.plugins.find(p => p.name === name);
-      if (!plugin) throw new Error(`Unknown plugin: ${name}`);
-      for (const harness of targets) {
-        const old = state.records.filter(r => r.plugin === name && r.harness === harness && r.sourceDigest !== manifest.digest);
-        if (old.length && !update) throw new Error(`${name} has another managed version in ${harness}; use update explicitly`);
-        const receipt = state.records.find(r => r.plugin === name && r.harness === harness && r.sourceDigest === manifest.digest);
-        const configFile = harness === 'opencode' ? (receipt?.configFile || this.config || await chooseOpenCodeConfig(this.env, this.userHome)) : undefined;
-        if (receipt?.configFile && this.config && receipt.configFile !== this.config) throw new Error('Existing receipt uses a different OpenCode config');
-        records.push({ plugin: name, version: plugin.version, harness, catalog: manifest.name, sourceDigest: manifest.digest, snapshot,
-          selector: `${name}@${marketplace}`, configFile,
-          reference: harness === 'opencode' ? pathToFileURL(path.join(snapshot, 'opencode/plugins', name, 'index.mjs')).href : undefined,
-          status: receipt?.status ?? 'installing', owned: Boolean(receipt), previous: old,
-        });
+      if (!plugin) throw new Error(`Managed plugin ${name} is missing from this bundle. Select other plugins explicitly or remove its managed registration; nothing was removed automatically.`);
+      const existing = managed.filter(r => r.plugin === name && r.harness === harness);
+      if (existing.some(r => r.status === 'removing')) throw new Error(`${name}/${harness} has an unfinished removal; retry remove before installing or updating it.`);
+      const old = existing.filter(r => r.sourceDigest !== manifest.digest);
+      if (old.length && !update) throw new Error(`${name} has another managed version in ${harness}; use update explicitly`);
+      const receipt = existing.find(r => r.sourceDigest === manifest.digest);
+      let configFile;
+      if (harness === 'opencode') {
+        const paths = [...new Set(existing.map(r => r.configFile))];
+        if (paths.some(p => typeof p !== 'string' || !path.isAbsolute(p)) || paths.length > 1) throw new Error('Managed OpenCode receipts have missing or conflicting config paths; inspect status before retrying');
+        if (paths.length && this.config && paths[0] !== this.config) throw new Error('Existing receipt uses a different OpenCode config');
+        configFile = paths[0] || this.config || await chooseOpenCodeConfig(this.env, this.userHome);
       }
+      records.push({ plugin: name, version: plugin.version, harness, catalog: manifest.name, sourceDigest: manifest.digest, snapshot,
+        selector: `${name}@${marketplace}`, configFile,
+        reference: harness === 'opencode' ? pathToFileURL(path.join(snapshot, 'opencode/plugins', name, 'index.mjs')).href : undefined,
+        status: receipt?.status ?? 'installing', owned: Boolean(receipt), previous: old,
+        fromVersions: [...new Set(existing.map(r => r.version))],
+      });
     }
     return { manifest, records };
   }
@@ -127,15 +141,18 @@ export class Installer {
     const { rename } = await import('node:fs/promises');
     await rename(staging, snapshot);
   }
-  async install(names, targets, { update = false } = {}) {
+  async install(names = [], targets = [], { update = false } = {}) {
+    // A first-time `update` is a read-only no-op, even without --dry-run.
+    if (update && !(await this.plan(names, targets, { update })).records.length) return [];
     return this.locked(async () => {
       const { manifest, records } = await this.plan(names, targets, { update });
+      if (!records.length) return [];
       await this.preflight(records); // All selected native tools/configs checked before changes.
       await this.stage(manifest);
       const state = await this.state();
       const outcomes = [];
       for (const planned of records) {
-        const { owned, previous, ...r } = planned;
+        const { owned, previous, fromVersions, ...r } = planned;
         let saved = state.records.find(x => recordId(x) === recordId(r));
         if (!saved) { saved = r; state.records.push(saved); }
         saved.status = 'installing'; saved.phase = 'registered-intent'; delete saved.error;

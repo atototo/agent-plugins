@@ -7,7 +7,7 @@
 스킬·MCP·설정을 **플러그인 단위**로 묶는 개인 저장소다.
 공통 원본을 Codex · Claude Code · OpenCode 패키지로 만들고, 하나의 CLI로 설치한다.
 
-[전체 구조](#overview) · [설치하기](#install) · [ELI5 Visual](#eli5-visual) · [검증 상태](#verification) · [개발하기](#development)
+[전체 구조](#overview) · [설치하기](#install) · [업데이트](#update) · [ELI5 Visual](#eli5-visual) · [검증 상태](#verification) · [개발하기](#development)
 
 > **v0.1 개발판** — 소스와 CI는 공개됐지만 npm에는 아직 게시하지 않았다.
 > 자동 테스트·실제 MCP·HTML 렌더링은 검증했고, **세 하네스의 실제 설치부터 사용까지 이어지는 검증은 남아 있다.**
@@ -86,11 +86,35 @@ node bin/agent-plugins.mjs install eli5-visual --harness codex,opencode --yes
 대화형 터미널에서는 `--harness`를 생략하고 대상을 선택할 수도 있다.
 `--yes`는 변경 적용을 확인하는 옵션이다. 설치 뒤에는 **새 하네스 세션을 시작한다.**
 
-> `all`은 세 하네스를 명시적으로 선택한다는 뜻이다. Codex/Claude CLI가 없으면
+> `install --harness all`은 세 하네스를 명시적으로 선택한다는 뜻이다. Codex/Claude CLI가 없으면
 > 하네스 설정 변경 전에 중단하며, 누락된 하네스를 조용히 건너뛰거나 대신 설치하지 않는다.
 > 중간 실행 실패는 하네스별로 기록한다. 전체 자동 롤백은 보장하지 않는다.
 
 설치 후 [사용·업데이트·제거 가이드](docs/USAGE.md)를 참고한다.
+
+<a id="update"></a>
+
+## 업데이트도 한 번에
+
+새 소스를 받아 빌드하거나 새 패키지를 준비한 뒤, 플러그인과 하네스를 다시 나열할 필요 없이 실행한다.
+
+```bash
+# 기존 설치 대상과 변경 전·후 버전 확인
+node bin/agent-plugins.mjs update --dry-run
+
+# 설치 기록에 있는 플러그인·하네스 조합만 갱신
+node bin/agent-plugins.mjs update --yes
+```
+
+예를 들어 Codex와 OpenCode에만 설치했다면 **두 곳만 업데이트**한다.
+`update --harness all`도 미설치 하네스를 추가하지 않는다. 특정 대상만 갱신하려면
+`update eli5-visual --harness codex --yes`처럼 필터를 붙인다.
+새 하네스에 추가할 때는 `install`을 사용한다.
+
+**GitHub에 올리거나 npm 패키지를 새로 받는 것만으로 기존 플러그인이 바뀌지는 않는다.**
+`update`는 실행 중인 패키지에 포함된 번들을 적용하며, 최신 릴리스를 직접 다운로드하지 않는다.
+처음 지정한 OpenCode 설정 경로도 설치 기록에서 재사용한다. 적용 뒤 새 세션을 시작한다.
+[배포 방식별 업데이트 절차와 버전 규칙](docs/USAGE.md#update)
 
 <a id="eli5-visual"></a>
 
@@ -130,7 +154,7 @@ CI 초록 배지는 빌드·테스트 결과를 나타낸다. 실제 하네스�
 
 | 검사 | 현재 확인한 범위 |
 | --- | --- |
-| 설치기 자동 테스트 **19개** | 중복 설치, 설정 보존, 부분 실패·재시도, 업데이트·제거, 경로 보호 |
+| 자동 테스트 | 중복 설치, 설정 보존, 설치 조합을 유지하는 업데이트·필터, 부분 실패·재시도, 제거·경로 보호 |
 | 실제 외부 MCP 실행 | 연결, 도구·리소스 조회, full/quick HTML 저장, 경로 이탈 차단 |
 | 실제 Chromium 렌더링 | 고정 예시의 **1200px / 390px** 레이아웃·넘침·페이지 오류 검사, 로컬 캡처 시각 검수 |
 | GitHub Actions | **Node 22·24**에서 자동 검사와 tarball 생성. [실행 결과](https://github.com/atototo/agent-plugins/actions/workflows/check.yml) |

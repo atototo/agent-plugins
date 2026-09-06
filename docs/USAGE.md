@@ -35,22 +35,96 @@ npx --yes --package ./personal-agent-plugins-0.1.0.tgz \
 
 아래 명령은 소스 저장소 디렉터리에서 실행한다. tarball을 사용할 때는 같은 하위 명령을 앞 절의 `npx … agent-plugins` 뒤에 붙인다.
 
-## 상태·업데이트·제거
+## 상태 확인
 
 ```bash
 node bin/agent-plugins.mjs list
 node bin/agent-plugins.mjs status
 node bin/agent-plugins.mjs doctor
-node bin/agent-plugins.mjs update eli5-visual --harness all --yes
-node bin/agent-plugins.mjs remove eli5-visual --harness all --yes
 ```
-
-업데이트는 새 `dist/`를 만들거나 새 CLI 패키지를 받은 뒤 실행한다. 같은 빌드의
-설치는 재실행해도 중복되지 않는다. 다른 빌드로 바꾸는 것은 `update`로 명시한다.
-새 버전의 등록을 확인한 뒤 이 설치기가 관리하던 이전 버전만 제거한다.
 
 `doctor`는 파일 해시와 등록 상태를 확인한다. **MCP 연결 성공이나 브라우저 도구
 가용성을 보증하지 않는다.** 사용 중인 세션에서 확인해야 하는 사항을 명시한다.
+
+<a id="update"></a>
+
+## 업데이트: 새 패키지 준비 → 기존 설치에 적용
+
+`update`는 **현재 실행 중인 CLI가 가진 번들**을 적용한다. GitHub나 npm에서 최신 버전을
+찾아 다운로드하는 명령이 아니다. 이전 패키지로 실행하면 이전 번들이 적용될 수 있으므로
+계획의 `fromVersions`(기록된 버전), `version`(적용할 버전), `digest`를 먼저 확인한다.
+같은 빌드를 다시 적용해도 등록은 중복되지 않는다.
+
+### 소스에서 사용하는 경우
+
+```bash
+# 저장소 디렉터리에서 새 소스와 번들 준비
+git pull --ff-only
+npm ci
+npm run check
+
+# 기록된 모든 플러그인·하네스 조합을 확인한 뒤 한 번에 갱신
+node bin/agent-plugins.mjs update --dry-run
+node bin/agent-plugins.mjs update --yes
+```
+
+### 빌드된 tarball을 사용하는 경우
+
+새 커밋의 CI artifact 또는 개발자가 제공한 새 tarball을 받는다. 아래 `NEW_PACKAGE.tgz`는
+실제 받은 파일 경로로 바꾼다. 개발판 tarball의 이름이 같아도 커밋과 번들 digest는 다를 수 있다.
+
+```bash
+npx --yes --package ./NEW_PACKAGE.tgz agent-plugins update --dry-run
+npx --yes --package ./NEW_PACKAGE.tgz agent-plugins update --yes
+```
+
+### 업데이트 범위
+
+| 명령의 대상 부분 | 실제 갱신 범위 |
+| --- | --- |
+| `update` | 이 카탈로그의 설치 기록에 있는 모든 플러그인·하네스 조합 |
+| `update eli5-visual` | 그 플러그인을 이미 등록한 하네스만 |
+| `update --harness codex` | Codex에 이미 등록한 플러그인만 |
+| `update eli5-visual --harness all` | 그 플러그인의 기존 설치 조합 전체. 새 하네스를 추가하지 않음 |
+
+플러그인 이름과 `--harness`는 선택 필터이며, 생략해도 대상 선택 질문을 하지 않는다.
+적용 확인은 별도다. `--yes`가 없으면 대화형 터미널에서 확인하고, 비대화형 실행에서는 중단한다.
+기본 `update`에 설치 기록이 없으면 아무것도 만들지 않고 종료한다. 명시한 필터와 일치하는
+기록이 없거나 이름이 잘못되면 오류를 낸다. 다른 카탈로그의 기록은 갱신하지 않는다.
+
+처음에 `--state-dir`를 지정했다면 업데이트에도 **같은 경로**를 전달해야 한다.
+OpenCode의 `--opencode-config`는 다시 전달하지 않아도 기록된 경로를 사용한다.
+기록과 다른 경로를 지정하거나 기록끼리 경로가 충돌하면 자동 이전하지 않고 중단한다.
+
+설치 기록의 `installing`/`failed` 항목도 재시도 대상이다. 아직 기록되지 않은 하네스까지
+최초 설치를 마치려면 원래의 `install` 명령을 재실행한다. `removing` 상태는 업데이트로
+되살리지 않으며, 해당 `remove`를 먼저 마쳐야 한다. 새 번들에서 사라진 플러그인은 자동
+삭제하지 않는다. 기본 업데이트를 중단하므로 다른 플러그인만 명시하거나 제거 여부를 결정한다.
+
+새 버전의 등록 단계가 성공한 뒤 이 설치기가 관리하던 이전 버전만 제거한다.
+이는 실행 중 세션의 로딩 성공을 뜻하지 않는다. 적용 뒤 **새 하네스 세션**에서 확인한다.
+
+### 나중에 npm으로 배포한다면
+
+현재는 npm 미게시 상태다. 이름·소유자·라이선스를 확정하고 게시하기 전까지
+`npx @atototo/agent-plugins` 같은 레지스트리 설치 명령은 제공하지 않는다.
+
+| 버전 | 올리는 때 |
+| --- | --- |
+| 플러그인 버전 (`plugins/<name>/plugin.json`) | 해당 플러그인의 스킬·MCP·동작을 변경할 때 |
+| npm 배포 패키지 버전 (`package.json`) | 설치기 또는 포함된 플러그인을 새로 배포할 때 |
+
+두 버전은 별개다. 위 표의 두 경우 모두 **새 배포 패키지를 받은 뒤 `update`를 실행할 때**
+하네스에 적용된다. GitHub push, npm 게시, `npm update -g`만으로 기존 설치 스냅샷이
+자동 교체되지는 않는다. npm 게시 후에는 최신 CLI를 `npx`로 실행하면서 `update --yes`를
+전달하는 한 명령으로 묶을 수 있다. 자동 배경 업데이트나 npm lifecycle 설치는 하지 않는다.
+
+## 제거와 실패 복구
+
+```bash
+node bin/agent-plugins.mjs remove eli5-visual --harness all --dry-run
+node bin/agent-plugins.mjs remove eli5-visual --harness all --yes
+```
 
 중간 실패 시 하네스별 진행 상태가 기록된다. 같은 명령을 다시 실행해 이어가거나
 `remove`로 관리 중인 등록을 제거할 수 있다. 세 외부 CLI에 걸친 완전한 원자적
@@ -104,4 +178,3 @@ fixture를 MCP로 저장하고 실제 브라우저로 열어 검사한다. `.tes
 제공하려면 생성된 해당 루트를 별도 배포 브랜치/레포에 게시해야 한다.
 
 v0.1 네이티브 설치기는 Linux/macOS 계열을 대상으로 작성했으며 실제 자동 검증 환경은 Linux다. Windows의 npm `.cmd` shim 실행과 프로젝트 범위 설치는 아직 지원하지 않는다. npm 게시 전 패키지 이름·라이선스·npm 소유자를 확정해야 하며, 현재 `private: true`와 `UNLICENSED`를 유지한다.
-
