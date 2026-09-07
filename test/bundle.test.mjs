@@ -18,6 +18,8 @@ test('build emits native manifests, local MCP config and identical shared editor
   assert.equal(new Set(bodies).size, 1);
   const codex = await readJson(path.join(root, 'codex/plugins/eli5-visual/.mcp.json'));
   assert.equal(codex.mcpServers['eli5-visual-visual-explainer'].cwd, '.');
+  assert.deepEqual(codex.mcpServers['eli5-visual-visual-explainer'].env_vars, ['AGENT_PLUGINS_OUTPUT_DIR']);
+  assert.equal(codex.mcpServers['eli5-visual-visual-explainer'].env, undefined);
   const claude = await readJson(path.join(root, 'claude/plugins/eli5-visual/.mcp.json'));
   assert(claude.mcpServers['eli5-visual-visual-explainer'].args[0].startsWith('${CLAUDE_PLUGIN_ROOT}'));
 });

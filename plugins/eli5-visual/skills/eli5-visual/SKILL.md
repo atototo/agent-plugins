@@ -122,7 +122,9 @@ nouns, actions, and conditions if not.
 5. Read [verification.md](references/verification.md). Inspect source structure,
    then inspect the actual rendered final HTML economically. Correct material
    defects and recheck affected output. Do not manufacture a second visualization
-   as a substitute for testing the deliverable.
+   as a substitute for testing the deliverable. If permissions or the execution
+   environment block a check, follow the reference's blocked-check fallback;
+   retain the generated artifact's path and proceed to delivery with limitations.
 6. Deliver a working reference to every created or updated visual, cite factual
    sources, and accurately state any verification limitation. When native inline
    delivery was chosen, satisfy its live content-reference contract.

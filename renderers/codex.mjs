@@ -15,7 +15,11 @@ export async function renderCodex(root, plugin, catalog) {
   };
   await write(path.join(root, '.codex-plugin/plugin.json'), json(manifest));
   if (Object.keys(plugin.mcp).length) await write(path.join(root, '.mcp.json'), json({
-    mcpServers: { [`${plugin.name}-visual-explainer`]: { command: 'node', args: ['./runtime/launch.mjs'], cwd: '.' } },
+    mcpServers: { [`${plugin.name}-visual-explainer`]: {
+      command: 'node', args: ['./runtime/launch.mjs'], cwd: '.',
+      // Forward at harness startup; never bake the build machine's path into a release.
+      env_vars: ['AGENT_PLUGINS_OUTPUT_DIR'],
+    } },
   }));
 }
 export function codexMarketplace(catalog, plugins) {

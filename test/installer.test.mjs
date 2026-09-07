@@ -103,9 +103,11 @@ test('explicit update replaces only the owned old plugin entry', async t => {
   // Simulate another verified release without changing real source files.
   const { sha256 } = await import('../src/fs.mjs');
   const manifest = await readJson(path.join(source, 'bundle.json'));
-  manifest.plugins[0].version = '0.1.1';
+  const [major, minor, patch] = manifest.plugins[0].version.split('.').map(Number);
+  const nextVersion = `${major}.${minor}.${patch + 1}`;
+  manifest.plugins[0].version = nextVersion;
   for (const name of ['codex/plugins/eli5-visual/.codex-plugin/plugin.json', 'claude/plugins/eli5-visual/.claude-plugin/plugin.json', 'opencode/plugins/eli5-visual/package.json']) {
-    const data = await readJson(path.join(source, name)); data.version = '0.1.1';
+    const data = await readJson(path.join(source, name)); data.version = nextVersion;
     const text = json(data); await write(path.join(source, name), text); manifest.files[name] = sha256(text);
   }
   const { digest, ...body } = manifest;
@@ -115,5 +117,5 @@ test('explicit update replaces only the owned old plugin entry', async t => {
   await updater.install(['eli5-visual'], ['codex', 'opencode'], { update: true });
   assert.equal(native.plugins.codex.size, 1);
   assert.equal(parseConfig(await readFile(opencodeConfig, 'utf8')).plugin.length, 1);
-  assert((await updater.state()).records.every(x => x.version === '0.1.1'));
+  assert((await updater.state()).records.every(x => x.version === nextVersion));
 });

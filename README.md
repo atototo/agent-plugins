@@ -10,7 +10,8 @@
 [전체 구조](#overview) · [설치하기](#install) · [업데이트](#update) · [ELI5 Visual](#eli5-visual) · [검증 상태](#verification) · [개발하기](#development)
 
 > **v0.1 개발판** — 소스와 CI는 공개됐지만 npm에는 아직 게시하지 않았다.
-> 자동 테스트·실제 MCP·HTML 렌더링은 검증했고, **세 하네스의 실제 설치부터 사용까지 이어지는 검증은 남아 있다.**
+> 자동 테스트·실제 MCP·HTML 렌더링과 Codex 네이티브 설치·로드는 검증했다.
+> **세 하네스의 전체 사용 검증은 진행 중**이며, 완료 범위와 제약은 [검증 기록](docs/VALIDATION.md)에 구분했다.
 
 <a id="overview"></a>
 
@@ -156,9 +157,10 @@ CI 초록 배지는 빌드·테스트 결과를 나타낸다. 실제 하네스�
 | --- | --- |
 | 자동 테스트 | 중복 설치, 설정 보존, 설치 조합을 유지하는 업데이트·필터, 부분 실패·재시도, 제거·경로 보호 |
 | 실제 외부 MCP 실행 | 연결, 도구·리소스 조회, full/quick HTML 저장, 경로 이탈 차단 |
+| 실제 Codex CLI 0.153.4 | 네이티브 설치·스킬 발견·MCP 호출·업데이트·제거. 모델 생성과 검증 차단은 [별도 기록](docs/VALIDATION.md) |
 | 실제 Chromium 렌더링 | 고정 예시의 **1200px / 390px** 레이아웃·넘침·페이지 오류 검사, 로컬 캡처 시각 검수 |
 | GitHub Actions | **Node 22·24**에서 자동 검사와 tarball 생성. [실행 결과](https://github.com/atototo/agent-plugins/actions/workflows/check.yml) |
-| **남은 검증** | 실제 세 하네스에서 설치 → 새 세션 → 스킬/MCP 사용 → 업데이트 → 제거 |
+| **남은 검증** | Claude/OpenCode 실제 설치·사용·업데이트·제거, Codex의 다양한 원문·브라우저 가용성 조건에서 전체 사용 검증 |
 
 `doctor`는 파일 해시와 등록 상태를 확인한다. MCP 연결 성공, 브라우저 가용성,
 원문 내용 보존이나 설명 품질까지 보증하지 않는다. [검증 방법과 한계](docs/VALIDATION.md)

@@ -27,8 +27,9 @@ npx --yes --package ./personal-agent-plugins-0.1.0.tgz \
 ## 설치 후 사용하기
 
 설치 뒤 새 세션을 시작한다. Claude Code에서는 지원되는 경우 `/reload-plugins`를
-사용할 수 있다. 스킬은 보통 Codex의 `$eli5-visual`, Claude Code의
-`/eli5-visual:eli5-visual`, OpenCode의 스킬 탐색 또는 자연어 요청으로 사용한다.
+사용할 수 있다. Codex에서는 `$eli5-visual:eli5-visual`로 호출한다
+(Codex CLI 0.153.4 실제 설치에서 확인한 `플러그인:스킬` 이름). Claude Code에서는
+`/eli5-visual:eli5-visual`, OpenCode에서는 스킬 탐색 또는 자연어 요청으로 사용한다.
 
 요청 예: “이 설계 문서를 처음 보는 사람에게 중요한 제약과 다음 할 일까지
 빠뜨리지 않는 스크롤형 시각 설명으로 만들어줘.”
@@ -141,6 +142,10 @@ node bin/agent-plugins.mjs remove eli5-visual --harness all --yes
 - 설치 기록·스냅샷: `~/.local/share/agent-plugins/` (`--state-dir`로 변경 가능).
 - HTML: `~/.agent/diagrams/eli5-visual/`. 하네스 시작 전
   `AGENT_PLUGINS_OUTPUT_DIR`로 별도 전용 경로를 지정할 수 있다.
+  Codex 플러그인 v0.1.1부터 이 변수를 MCP에 명시적으로 전달한다.
+  설치 명령에만 변수를 설정하면 이후 실행하는 하네스에 유지되지 않는다.
+  예: `AGENT_PLUGINS_OUTPUT_DIR="/absolute/path/my visuals" codex`.
+  이미 실행 중인 앱에는 소급 적용되지 않으며, 변수가 없으면 기본 경로를 쓴다.
 - OpenCode: 기존 `opencode.jsonc`/`opencode.json`을 사용한다. 둘 다 있거나 사용자
   지정 `OPENCODE_CONFIG`가 있으면 `--opencode-config`로 대상을 명확히 지정한다.
 - 기존 설정·주석과 나중에 사용자가 추가한 항목은 보존한다. 관리하지 않는 플러그인,
@@ -151,6 +156,10 @@ node bin/agent-plugins.mjs remove eli5-visual --harness all --yes
   제공자에게 전달될 수 있다. “로컬 MCP”가 “전체 작업이 오프라인”이라는 뜻은 아니다.
 
 OpenCode 설정 루트는 `OPENCODE_CONFIG_DIR`와 `XDG_CONFIG_HOME`을 반영한다. 심볼릭 링크로 연결된 config/storage는 명시적인 실경로가 필요하다. 설정 내용 대조는 동시 수정 위험을 줄이지만 외부 프로그램과 공통 잠금을 쓰는 완전한 transaction은 아니다.
+
+HTML 저장 뒤 권한·샌드박스 문제로 파일 읽기나 브라우저 검증이 막히면,
+스킬은 생성된 HTML 링크와 실제 완료한 검사·미검증 항목을 구분해서 전달한다.
+이 경우 파일 링크가 있다는 것만으로 렌더링 검증 완료를 뜻하지는 않는다.
 
 <a id="browser-check"></a>
 

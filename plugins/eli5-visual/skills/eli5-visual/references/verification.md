@@ -27,8 +27,26 @@ If the artifact changes, recheck the affected parts. Do not keep taking near-
 identical intermediate screenshots. A native fragment should be tested in its
 actual host or a genuinely equivalent preview, not an unrelated standalone theme.
 
-If no authorized browser route is available, deliver the HTML with an explicit
-"source checks completed; rendered/visual inspection not performed" limitation.
+## When a check is blocked
+
+Retain the exact artifact path returned by a successful HTML-output tool before
+starting checks. A later verification failure does not undo that result.
+
+If a check fails because of permissions, sandbox/namespace creation (such as
+`bwrap`), or missing tools, distinguish an unavailable checker from a defect in
+the HTML. Try another route only if it is already available, authorized, and
+addresses the cause. Rephrasing the same shell command does not resolve a
+namespace failure. If no such route exists, stop the blocked check and deliver
+the existing artifact reference; do not regenerate the HTML just to obtain a link.
+
+State only checks actually completed. If saved-file readback was blocked, say
+the output tool reported the file saved but you could not independently read it
+back. Reviewing the submitted HTML or its source facts is not saved-file
+verification. If no rendered inspection was possible, say so separately; do not
+claim source checks passed merely because the browser was unavailable. Give the
+concrete blocker and the remaining check alongside the link, without burying the
+deliverable in diagnostics. If saving itself failed, do not invent a file path.
+
 Do not silently install tools or weaken security. A browser failure is not a
 passing test. A failed display reference is not delivery. Do not claim screenshots
 were reviewed unless they were actually available to and inspected by the agent.

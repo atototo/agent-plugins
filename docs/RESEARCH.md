@@ -19,8 +19,16 @@
 | Playwright 선택 | [공식 CLI](https://github.com/microsoft/playwright-cli) · [공식 MCP](https://github.com/microsoft/playwright-mcp) | MCP 강제 의존성 없음. 로컬/CI 테스트는 라이브러리로 실행 |
 | native inline 호환성 | [Visualizations](https://learn.chatgpt.com/docs/visualizations) · [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) | 일반 MCP 연결과 채팅 UI 렌더링 지원을 구분 |
 
-추가 로컬 확인: Codex CLI 0.153.4의 plugin add/remove/list 및 marketplace 명령
+2026-09-05 로컬 확인: Codex CLI 0.153.4의 plugin add/remove/list 및 marketplace 명령
 도움말, JSON 응답 구조. 설치/제거 명령 자체는 사용자 설정에 실행하지 않았다.
+
+2026-09-06 보완: 실제 Codex 설치·MCP 호출에서 출력 경로 환경변수가 전달되지
+않는 것을 재현했다. [공식 MCP 설정 문서](https://learn.chatgpt.com/docs/extend/mcp)와
+[플러그인 파서](https://github.com/openai/codex/blob/ac192cd7937b0d73edc6dffe009940ae53782dd4/codex-rs/codex-mcp/src/plugin_config.rs)를
+확인해 Codex용 `.mcp.json`에 `env_vars: ["AGENT_PLUGINS_OUTPUT_DIR"]`를 추가했다.
+빌드 시 환경변수 값을 저장하지 않고, 하네스 실행 시 이 변수만 추가 전달한다.
+`skills/list`에서 확인한 스킬 이름은 `eli5-visual:eli5-visual`이다.
+실제 검사 범위와 제약은 [검증 기록](VALIDATION.md)에 구분해서 남긴다.
 
 `npm view visual-explainer@0.11.0`에서 실제 배포와 MCP binary를 확인했고, lockfile은
 해당 패키지의 npm integrity를 기록한다. 자체 시각화 MCP를 새로 구현하지 않는다.
