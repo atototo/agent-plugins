@@ -85,6 +85,7 @@ export async function buildBundle(output = path.join(repo, 'dist')) {
       for (const harness of HARNESSES) {
         const target = path.join(stage, harness, 'plugins', plugin.name);
         await mkdir(target, { recursive: true });
+        await cp(path.join(repo, 'LICENSE'), path.join(target, 'LICENSE'));
         for (const name of plugin.skills) {
           const source = path.join(repo, 'plugins', plugin.name, 'skills', name);
           await files(source); // Reject symlinks before copying any source resource.

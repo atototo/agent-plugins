@@ -1,14 +1,14 @@
 {
-  "name": "personal-agent-plugins",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@atototo/agent-plugins",
+  "version": "0.1.1",
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
   "description": "One installer, native plugin packages for Codex, Claude Code and OpenCode",
   "repository": { "type": "git", "url": "https://github.com/atototo/agent-plugins.git" },
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": { "node": ">=22" },
   "bin": { "agent-plugins": "bin/agent-plugins.mjs" },
-  "files": ["bin", "src", "dist", "README.md", "docs", "THIRD_PARTY_NOTICES.md"],
+  "files": ["bin", "src", "dist", "README.md", "docs", "LICENSE", "THIRD_PARTY_NOTICES.md"],
   "scripts": {
     "build": "node scripts/build.mjs",
     "validate": "node bin/agent-plugins.mjs validate",
@@ -16,7 +16,8 @@
     "test:mcp": "node scripts/smoke-mcp.mjs",
     "test:browser": "node scripts/smoke-browser.mjs",
     "check": "npm run build && npm run validate && npm test && npm run test:mcp",
-    "pack:local": "npm run check && npm pack --ignore-scripts"
+    "pack:local": "npm run check && npm pack --ignore-scripts",
+    "prepublishOnly": "npm run check"
   },
   "dependencies": { "jsonc-parser": "3.3.1" },
   "devDependencies": {

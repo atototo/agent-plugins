@@ -12,5 +12,6 @@ upstream MCP implementation or claim authorship of it.
 
 jsonc-parser is used by the installer. esbuild, the MCP client SDK, and Playwright
 are development tools with their own licenses. Their package metadata and license
-files remain in their npm distributions. Source publication of this repository does
-not change those licenses or automatically license the user's original skill.
+files remain in their npm distributions. This repository's original code and skills
+are licensed under the root MIT LICENSE. That grant does not replace any bundled
+third-party copyright notices, licenses, or attribution requirements.

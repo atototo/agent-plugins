@@ -118,5 +118,6 @@ stdio smoke test를 갖춘 provider adapter를 추가한다. 임의의 upstream 
 
 훅/에이전트/LSP는 공통 의미가 확인될 때 capability 단위로 확장한다. v0.1.0에서
 이를 지원한다고 주장하거나 기능을 조용히 누락하지 않는다. GitHub 저장소는
-`atototo/agent-plugins`로 확정했다. npm 패키지 이름·공개 라이선스·npm 소유자와
-실제 세 하네스 실행 검증은 정식 배포 전 확인할 항목이다.
+`atototo/agent-plugins`로 확정했다. npm 공개 배포 패키지는 `@atototo/agent-plugins`,
+소유자는 npm 계정 `atototo`, 자체 코드·스킬의 라이선스는 MIT다.
+하네스별 확인 범위와 사용자 실환경 보고는 `VALIDATION.md`에서 구분한다.

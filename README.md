@@ -9,7 +9,7 @@
 
 [전체 구조](#overview) · [설치하기](#install) · [업데이트](#update) · [ELI5 Visual](#eli5-visual) · [검증 상태](#verification) · [개발하기](#development)
 
-> **v0.1 개발판** — 소스와 CI는 공개됐지만 npm에는 아직 게시하지 않았다.
+> **v0.1 초기 배포판** — npm 패키지 `@atototo/agent-plugins`, 자체 코드·스킬은 MIT 라이선스다.
 > 자동 테스트·실제 MCP·HTML 렌더링과 Codex 네이티브 설치·로드는 검증했다.
 > **세 하네스의 전체 사용 검증은 진행 중**이며, 완료 범위와 제약은 [검증 기록](docs/VALIDATION.md)에 구분했다.
 
@@ -51,37 +51,25 @@ OpenCode 실행 파일은 등록 단계의 선행조건이 아니므로, 등록 
 
 ## 설치하기
 
-### 1. 소스로 준비하기
+### 1. npm으로 설치 계획 확인하기
 
-현재 npm 미게시 상태이므로, 처음에는 저장소에서 설치기를 준비한다. **Node.js 22 이상**이 필요하다.
-
-```bash
-git clone https://github.com/atototo/agent-plugins.git
-cd agent-plugins
-npm ci
-npm run check
-```
-
-여기까지는 빌드와 검사만 수행한다. **사용자 하네스에는 아직 설치하지 않는다.**
-이미 빌드된 tarball이 있다면 이 과정 없이 [패키지로 설치하기](docs/USAGE.md#package-install)를 이용할 수 있다.
-
-### 2. 변경 계획 확인하기
+**Node.js 22 이상과 사용할 하네스**가 필요하다. 사용자는 clone·빌드 없이 실행한다.
 
 ```bash
-node bin/agent-plugins.mjs install eli5-visual --harness all --dry-run
+npx --yes @atototo/agent-plugins@latest install eli5-visual --harness all --dry-run
 ```
 
 `--dry-run`은 계획만 출력하고 설정·설치 기록을 만들지 않는다.
 하네스 CLI의 실행 가능 여부는 실제 적용 전 사전 검사에서 확인한다.
 
-### 3. 원하는 하네스에 한 번에 설치하기
+### 2. 원하는 하네스에 한 번에 설치하기
 
 ```bash
 # 세 하네스 모두
-node bin/agent-plugins.mjs install eli5-visual --harness all --yes
+npx --yes @atototo/agent-plugins@latest install eli5-visual --harness all --yes
 
 # 또는 Codex와 OpenCode만
-node bin/agent-plugins.mjs install eli5-visual --harness codex,opencode --yes
+npx --yes @atototo/agent-plugins@latest install eli5-visual --harness codex,opencode --yes
 ```
 
 대화형 터미널에서는 `--harness`를 생략하고 대상을 선택할 수도 있다.
@@ -93,18 +81,30 @@ node bin/agent-plugins.mjs install eli5-visual --harness codex,opencode --yes
 
 설치 후 [사용·업데이트·제거 가이드](docs/USAGE.md)를 참고한다.
 
+### 소스로 개발하거나 테스트하려면
+
+```bash
+git clone https://github.com/atototo/agent-plugins.git
+cd agent-plugins
+npm ci
+npm run check
+```
+
+이 과정은 빌드·검사만 수행한다. 이후 소스 CLI인 `node bin/agent-plugins.mjs`로
+동일한 하위 명령을 실행할 수 있다. [tarball 설치](docs/USAGE.md#package-install)도 지원한다.
+
 <a id="update"></a>
 
 ## 업데이트도 한 번에
 
-새 소스를 받아 빌드하거나 새 패키지를 준비한 뒤, 플러그인과 하네스를 다시 나열할 필요 없이 실행한다.
+최신 npm 패키지를 실행하면서 기존 설치를 갱신한다. 플러그인과 하네스를 다시 나열할 필요 없다.
 
 ```bash
 # 기존 설치 대상과 변경 전·후 버전 확인
-node bin/agent-plugins.mjs update --dry-run
+npx --yes @atototo/agent-plugins@latest update --dry-run
 
 # 설치 기록에 있는 플러그인·하네스 조합만 갱신
-node bin/agent-plugins.mjs update --yes
+npx --yes @atototo/agent-plugins@latest update --yes
 ```
 
 예를 들어 Codex와 OpenCode에만 설치했다면 **두 곳만 업데이트**한다.
@@ -114,6 +114,8 @@ node bin/agent-plugins.mjs update --yes
 
 **GitHub에 올리거나 npm 패키지를 새로 받는 것만으로 기존 플러그인이 바뀌지는 않는다.**
 `update`는 실행 중인 패키지에 포함된 번들을 적용하며, 최신 릴리스를 직접 다운로드하지 않는다.
+위 명령에서는 `npx …@latest`가 최신 배포본을 준비하고 `update`가 기존 설치에 적용한다.
+소스로 설치했어도 같은 사용자·설치 기록 경로라면 npm 명령으로 갱신할 수 있다.
 처음 지정한 OpenCode 설정 경로도 설치 기록에서 재사용한다. 적용 뒤 새 세션을 시작한다.
 [배포 방식별 업데이트 절차와 버전 규칙](docs/USAGE.md#update)
 
@@ -158,6 +160,7 @@ CI 초록 배지는 빌드·테스트 결과를 나타낸다. 실제 하네스�
 | 자동 테스트 | 중복 설치, 설정 보존, 설치 조합을 유지하는 업데이트·필터, 부분 실패·재시도, 제거·경로 보호 |
 | 실제 외부 MCP 실행 | 연결, 도구·리소스 조회, full/quick HTML 저장, 경로 이탈 차단 |
 | 실제 Codex CLI 0.153.4 | 네이티브 설치·스킬 발견·MCP 호출·업데이트·제거. 모델 생성과 검증 차단은 [별도 기록](docs/VALIDATION.md) |
+| 사용자 실환경 확인 | Codex·Claude Code·OpenCode 모두 동작한다는 사용자 확인. 하네스 버전·세부 검사 로그는 별도 수집하지 않음 |
 | 실제 Chromium 렌더링 | 고정 예시의 **1200px / 390px** 레이아웃·넘침·페이지 오류 검사, 로컬 캡처 시각 검수 |
 | GitHub Actions | **Node 22·24**에서 자동 검사와 tarball 생성. [실행 결과](https://github.com/atototo/agent-plugins/actions/workflows/check.yml) |
 | **남은 검증** | Claude/OpenCode 실제 설치·사용·업데이트·제거, Codex의 다양한 원문·브라우저 가용성 조건에서 전체 사용 검증 |
@@ -210,14 +213,14 @@ v0.1 범위는 **스킬 + 지원되는 로컬 MCP**다. 새 MCP 제공자는 별
 
 ## 배포 상태와 더 읽을 문서
 
-- GitHub 소스와 CI 산출물은 제공하지만, **npm 게시와 자동 릴리스는 아직 하지 않는다.**
+- npm 패키지는 `@atototo/agent-plugins`다. GitHub 소스와 CI tarball도 제공하며, 자동 릴리스는 아직 구성하지 않았다.
 - 소스 저장소 루트는 네이티브 마켓플레이스가 아니다. 생성된 `dist/codex`, `dist/claude`가 각각의 루트다.
-- npm 이름은 아직 작업용 `personal-agent-plugins`이고 `private: true`를 유지한다.
-- 공개 라이선스는 미정이다. 자체 코드는 현재 `UNLICENSED`이며, 외부 코드의 라이선스는 별도로 유지한다.
+- 자체 코드·스킬은 [MIT](LICENSE) 라이선스다. 외부 코드의 원래 라이선스와 고지는 별도로 유지한다.
 
 | 문서 | 궁금한 내용 |
 | --- | --- |
 | [사용 가이드](docs/USAGE.md) | tarball 설치, 사용 명령, 설정 경로, 업데이트·제거, 실패 복구 |
+| [npm 배포 체크리스트](docs/RELEASING.md) | 새 버전 준비, 검증한 tarball 게시, 게시 후 업데이트 확인 |
 | [전체 설계](docs/DESIGN.md) | 하네스별 책임, 두 종류의 렌더링, 설치 상태·소유권, 확장 경계 |
 | [조사 근거](docs/RESEARCH.md) | 구현에 참고한 공식 문서와 upstream 소스 |
 | [검증 범위](docs/VALIDATION.md) | 테스트가 증명하는 것과 남은 실제 사용 검증 |

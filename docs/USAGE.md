@@ -8,17 +8,24 @@
 
 ## 빌드된 패키지로 설치하기
 
-npm에는 아직 게시하지 않았다. 개발자가 `npm run pack:local`로 만든 tarball 또는 [성공한 GitHub Actions 실행](https://github.com/atototo/agent-plugins/actions/workflows/check.yml)의 artifact를 내려받아 풀면 `personal-agent-plugins-0.1.0.tgz`를 사용할 수 있다. 검증한 커밋의 신뢰할 수 있는 패키지를 선택한다.
+npm 배포 이름은 `@atototo/agent-plugins`다. clone이나 로컬 빌드 없이 실행한다:
+
+```bash
+npx --yes @atototo/agent-plugins@latest install eli5-visual --harness all --dry-run
+npx --yes @atototo/agent-plugins@latest install eli5-visual --harness all --yes
+```
+
+개발자가 `npm run pack:local`로 만든 tarball 또는 [성공한 GitHub Actions 실행](https://github.com/atototo/agent-plugins/actions/workflows/check.yml)의 artifact도 사용할 수 있다. v0.1.1 파일명은 `atototo-agent-plugins-0.1.1.tgz`다. 검증한 커밋의 신뢰할 수 있는 패키지를 선택한다.
 
 **Node.js 22 이상과 사용할 하네스는 별도로 준비해야 한다.** 하네스 자체나 브라우저는 설치기가 대신 설치하지 않는다.
 
 ```bash
 # tarball이 있는 디렉터리에서: 먼저 계획만 확인
-npx --yes --package ./personal-agent-plugins-0.1.0.tgz \
+npx --yes --package ./atototo-agent-plugins-0.1.1.tgz \
   agent-plugins install eli5-visual --harness all --dry-run
 
 # 실제 하네스 설정에 적용
-npx --yes --package ./personal-agent-plugins-0.1.0.tgz \
+npx --yes --package ./atototo-agent-plugins-0.1.1.tgz \
   agent-plugins install eli5-visual --harness all --yes
 ```
 
@@ -57,6 +64,9 @@ node bin/agent-plugins.mjs doctor
 같은 빌드를 다시 적용해도 등록은 중복되지 않는다.
 
 ### 소스에서 사용하는 경우
+
+소스로 설치했던 경우에도 아래 npm 명령으로 전환할 수 있다. 같은 사용자와 같은
+`--state-dir`를 사용하면 기존 카탈로그 `agent-plugins`의 설치 기록을 이어 쓴다.
 
 ```bash
 # 저장소 디렉터리에서 새 소스와 번들 준비
@@ -105,10 +115,17 @@ OpenCode의 `--opencode-config`는 다시 전달하지 않아도 기록된 경�
 새 버전의 등록 단계가 성공한 뒤 이 설치기가 관리하던 이전 버전만 제거한다.
 이는 실행 중 세션의 로딩 성공을 뜻하지 않는다. 적용 뒤 **새 하네스 세션**에서 확인한다.
 
-### 나중에 npm으로 배포한다면
+### npm으로 업데이트하기
 
-현재는 npm 미게시 상태다. 이름·소유자·라이선스를 확정하고 게시하기 전까지
-`npx @atototo/agent-plugins` 같은 레지스트리 설치 명령은 제공하지 않는다.
+```bash
+npx --yes @atototo/agent-plugins@latest update --dry-run
+npx --yes @atototo/agent-plugins@latest update --yes
+```
+
+`@latest`를 생략하지 않는다. 최신 패키지 준비와 기존 하네스 갱신을 한 명령으로
+묶지만, 백그라운드 자동 업데이트는 아니다. npm을 offline/prefer-offline 모드로
+설정했다면 최신 버전 확인을 위해 온라인 모드로 실행한다. 특정 릴리스를 재현할
+때는 `@latest` 대신 `@0.1.1`처럼 버전을 고정하고 적용 계획을 확인한다.
 
 | 버전 | 올리는 때 |
 | --- | --- |
@@ -117,8 +134,8 @@ OpenCode의 `--opencode-config`는 다시 전달하지 않아도 기록된 경�
 
 두 버전은 별개다. 위 표의 두 경우 모두 **새 배포 패키지를 받은 뒤 `update`를 실행할 때**
 하네스에 적용된다. GitHub push, npm 게시, `npm update -g`만으로 기존 설치 스냅샷이
-자동 교체되지는 않는다. npm 게시 후에는 최신 CLI를 `npx`로 실행하면서 `update --yes`를
-전달하는 한 명령으로 묶을 수 있다. 자동 배경 업데이트나 npm lifecycle 설치는 하지 않는다.
+자동 교체되지는 않는다. 위 명령은 최신 CLI 실행과 `update --yes`를 한 번에 수행한다.
+자동 배경 업데이트나 npm lifecycle을 통한 하네스 설치는 하지 않는다.
 
 ## 제거와 실패 복구
 
@@ -186,4 +203,4 @@ fixture를 MCP로 저장하고 실제 브라우저로 열어 검사한다. `.tes
 권장한다. 소스 GitHub 저장소의 루트는 마켓플레이스가 아니다. 네이티브 GitHub 등록을
 제공하려면 생성된 해당 루트를 별도 배포 브랜치/레포에 게시해야 한다.
 
-v0.1 네이티브 설치기는 Linux/macOS 계열을 대상으로 작성했으며 실제 자동 검증 환경은 Linux다. Windows의 npm `.cmd` shim 실행과 프로젝트 범위 설치는 아직 지원하지 않는다. npm 게시 전 패키지 이름·라이선스·npm 소유자를 확정해야 하며, 현재 `private: true`와 `UNLICENSED`를 유지한다.
+v0.1 네이티브 설치기는 Linux/macOS 계열을 대상으로 작성했으며 실제 자동 검증 환경은 Linux다. Windows의 npm `.cmd` shim 실행과 프로젝트 범위 설치는 아직 지원하지 않는다. npm 공개 배포 패키지는 `@atototo/agent-plugins`이며 자체 코드·스킬은 MIT, 외부 코드는 원래 라이선스를 유지한다.

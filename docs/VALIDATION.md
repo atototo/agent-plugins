@@ -2,6 +2,34 @@
 
 테스트 이름과 실제 사용자 경험을 구분한다.
 
+## 사용자 실환경 확인과 npm 배포 준비 — 2026-09-07
+
+- 사용자가 다른 환경에서 Codex·Claude Code·OpenCode 모두 테스트했고 잘 동작한다고
+  보고했다. 이는 사용자 확인이며, 에이전트가 해당 환경을 직접 실행한 결과가 아니다.
+  하네스별 버전·OS·업데이트/제거 세부 로그는 받지 않았으므로 범위를 추정하지 않는다.
+- npm 계정 `atototo` 로그인 확인 후 패키지 이름을 `@atototo/agent-plugins`,
+  배포 버전을 `0.1.1`로 설정했다. 카탈로그 이름 `agent-plugins`와 기존 설치 기록
+  경로는 유지해 소스 설치에서 npm 업데이트로 전환할 수 있게 한다.
+- 자체 코드·스킬에 MIT LICENSE를 추가하고 각 하네스 번들에도 동봉한다.
+  외부 라이선스 고지는 별도로 유지한다. 초기 배포 이후에도 자동 배경 업데이트는 없다.
+- `npm run check`: 기존 회귀와 새 npm 파일 목록 검사까지 **33개** 테스트 통과.
+  배포 archive에 실행 코드·세 하네스 번들·MIT 및 외부 라이선스 고지가 포함되며,
+  `.npmrc`, `.test-output`, 개발용 테스트·스크립트가 제외됨을 확인했다.
+- 독립된 임시 디렉터리와 새 npm 캐시에서 실제 tarball을 `npx --package`로 실행했다.
+  기존 소스 번들 `82a015becb28`로 설치한 OpenCode 테스트 기록을 npm 배포 번들
+  `6b5094d63543`으로 갱신하면서 카탈로그와 저장된 설정 경로를 이어 썼다.
+  반복 업데이트의 중복 방지와 제거 후 기존 설정·주석 보존도 통과했다.
+  이 검사는 임시 OpenCode 설정 대상이며 실제 OpenCode 모델 부팅 검사가 아니다.
+- Chromium fixture의 1200px·390px 자동 검사도 재통과했고 페이지 오류는 0이었다.
+- 개발 의존성까지 포함한 `npm audit`는 `visual-explainer → pptxgenjs → image-size`의
+  high 경고 3개를 보고했다. [ICNS](https://github.com/advisories/GHSA-w3rx-r6r6-pgpr)와
+  [JXL/HEIF](https://github.com/advisories/GHSA-5p2g-fcmc-qvqq) 이미지 파서의 무한 루프 문제다.
+  `npm audit --omit=dev`는 0건이었고, HTML MCP에 연결된 번들 의존성 목록에는
+  `pptxgenjs`와 `image-size`가 없었다. 보존한 upstream 원본에는 PPTX export 스크립트가
+  있지만 해당 라이브러리는 배포하지 않으며 이 플러그인의 MCP 도구로 노출하지 않는다.
+  개발 의존성 경고가 해결된 것은 아니며 upstream PPTX 도구에 신뢰하지 않는 이미지를
+  넣는 용도는 검증 범위 밖이다.
+
 ## 실제 Codex 설치·사용 검사 — 2026-09-06
 
 Codex CLI **0.153.4**, Linux, 기존 ChatGPT 로그인으로 검사했다. 별도 API 키를
@@ -51,7 +79,7 @@ Codex CLI **0.153.4**, Linux, 기존 ChatGPT 로그인으로 검사했다. 별�
 - 실제 검사 후 테스트용 등록과 네이티브 캐시만 제거했다. 기존 플러그인 식별자·
   버전·활성 상태, 마켓플레이스 목록, `config.toml` SHA-256 일치를 확인했다.
   HTML·로그·설치기 스냅샷은 보존했다. 실제 Codex 검사는 CI 자동 검사에 포함되지 않는다.
-- npm 배포 패키지는 아직 미게시 개발판 v0.1.0이다. 이번 v0.1.1은 포함된
+- 이 검사 당시 npm 패키지는 미게시 개발판 v0.1.0이었다. 위 v0.1.1은 포함된
   `eli5-visual` 플러그인의 버전이며 npm 게시를 수행한 것이 아니다.
 
 ## 설치기 업데이트 검증 — 2026-09-06
